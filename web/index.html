@@ -1,0 +1,38 @@
+<html>
+<head>
+
+<script src="https://www.gstatic.com/firebasejs/5.9.3/firebase.js"></script>
+<script src="/__/firebase/init.js"></script>
+</head>
+<body>
+hi
+<input type="file" accept="image/*" id="capture-photo" capture="camera"><br/>
+<span id="status"></span>
+
+<script>
+  var imageInput = document.querySelector("#capture-photo"),
+      statusOutput = document.querySelector("#status");
+
+  var handleFileSelect = function(e) {
+    console.log("HI");
+    var file = e.target.files[0];
+    statusOutput.innerText = "uploading ...";
+    // Generate a random name for the image.
+    var fileName = generateName();
+    storage.ref().child('images/' + fileName).put(file).then(snapshot => {
+      statusOutput.innerText = "done uploading...";
+    }).catch(error => {
+      console.error(error);
+    });
+  };
+
+  var generateName = function() {
+    return "expense.jpg";
+  }
+
+  // When we upload an image, handle it!
+  imageInput.addEventListener('change', handleFileSelect, false);
+</script>
+
+</body>
+</html>

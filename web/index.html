@@ -16,7 +16,7 @@
     <script src="/__/firebase/5.9.3/firebase-app.js"></script>
     <script src="/__/firebase/5.9.3/firebase-auth.js"></script>
     <script src="/__/firebase/5.9.3/firebase-storage.js"></script>
-    <script src="/__/firebase/5.9.3/firebase-database.js"></script>
+    <script src="/__/firebase/5.9.3/firebase-firestore.js"></script>
     <script src="/__/firebase/init.js"></script>
     <script src="https://cdn.firebase.com/libs/firebaseui/3.5.2/firebaseui.js"></script>
     <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/3.5.2/firebaseui.css" />
@@ -29,7 +29,8 @@
 <input type="file" accept="image/*" id="capture-photo" capture="camera"><br/>
 <span id="status"></span>
 <br/>
-</div>
+<div id="expenses"></div>
+
 <script>
     /** Auth and upload **/
     var imageInput = document.querySelector("#capture-photo"),
@@ -39,7 +40,7 @@
     var auth = firebase.auth(),
         firebaseui = new firebaseui.auth.AuthUI(auth),
         storage = firebase.storage(),
-        database = firebase.database();
+        firestore = firebase.firestore();
     /**
      * Step AUTH 1: Use FirebaseUI to set it up easily.
      */
@@ -56,6 +57,7 @@
         console.log("onAuthStateChanged", user);
         authElm.style.display = (user) ? 'none' : '';
         signoutButton.style.display = (user) ? '' : 'none';
+        getExpenses();
     });
     /**
      * Step AUTH 3: Sign out because ... signing out is important.
@@ -67,8 +69,8 @@
         var file = e.target.files[0];
         statusOutput.innerText = "uploading ...";
         // Generate a random name for the image.
-        var fileName = auth.currentUser.uid + "/expense.jpg";
-        storage.ref().child('images/' + fileName).put(file).then(snapshot => {
+        var fileName = 'expenses/' + auth.currentUser.uid + "/expense.jpg";
+        storage.ref().child(filename).put(file).then(snapshot => {
             statusOutput.innerText = "done uploading...";
         }).catch(error => {
             console.error(error);
@@ -78,6 +80,17 @@
     // When we upload an image, handle it!
     imageInput.addEventListener('change', handleFileSelect, false);
 
+    /**
+     * Read from Firestore
+     */
+     var getExpenses = function() {
+         firestore.collection("expenses").where("uid", "==", auth.currentUser.uid)
+            .onSnapshot(function(querySnapshot) {
+                querySnapshot.forEach(doc => {
+                  console.log(doc.data());
+                });
+            });
+     };
 </script>
 </body>
 </html>

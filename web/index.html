@@ -1,38 +1,83 @@
+<!DOCTYPE html>
+<!--
+    Copyright 2017 Google
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
 <html>
 <head>
-
-<script src="https://www.gstatic.com/firebasejs/5.9.3/firebase.js"></script>
-<script src="/__/firebase/init.js"></script>
+    <script src="/__/firebase/5.9.3/firebase-app.js"></script>
+    <script src="/__/firebase/5.9.3/firebase-auth.js"></script>
+    <script src="/__/firebase/5.9.3/firebase-storage.js"></script>
+    <script src="/__/firebase/5.9.3/firebase-database.js"></script>
+    <script src="/__/firebase/init.js"></script>
+    <script src="https://cdn.firebase.com/libs/firebaseui/3.5.2/firebaseui.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/3.5.2/firebaseui.css" />
+    <link type="text/css" rel="stylesheet" href="style.css"/>
 </head>
 <body>
-hi
+<button id="signout-button">Sign Out</button>
+<h1>Zero to Expenses</h1>
+<div id="firebaseui-auth-container"></div>
 <input type="file" accept="image/*" id="capture-photo" capture="camera"><br/>
 <span id="status"></span>
-
+<br/>
+</div>
 <script>
-  var imageInput = document.querySelector("#capture-photo"),
-      statusOutput = document.querySelector("#status");
-
-  var handleFileSelect = function(e) {
-    console.log("HI");
-    var file = e.target.files[0];
-    statusOutput.innerText = "uploading ...";
-    // Generate a random name for the image.
-    var fileName = generateName();
-    storage.ref().child('images/' + fileName).put(file).then(snapshot => {
-      statusOutput.innerText = "done uploading...";
-    }).catch(error => {
-      console.error(error);
+    /** Auth and upload **/
+    var imageInput = document.querySelector("#capture-photo"),
+        statusOutput = document.querySelector("#status")
+    authElm = document.querySelector('#firebaseui-auth-container'),
+        signoutButton = document.querySelector("#signout-button");
+    var auth = firebase.auth(),
+        firebaseui = new firebaseui.auth.AuthUI(auth),
+        storage = firebase.storage(),
+        database = firebase.database();
+    /**
+     * Step AUTH 1: Use FirebaseUI to set it up easily.
+     */
+    firebaseui.start('#firebaseui-auth-container', {
+        signInSuccessUrl: '/index.html',
+        signInOptions: [
+            firebase.auth.GoogleAuthProvider.PROVIDER_ID
+        ],
     });
-  };
+    /**
+     * Step AUTH 2: Listening to state change to show appropriate UI.
+     */
+    auth.onAuthStateChanged(function (user) {
+        console.log("onAuthStateChanged", user);
+        authElm.style.display = (user) ? 'none' : '';
+        signoutButton.style.display = (user) ? '' : 'none';
+    });
+    /**
+     * Step AUTH 3: Sign out because ... signing out is important.
+     */
+    signoutButton.addEventListener('click', function (e) {
+        auth.signOut();
+    });
+    var handleFileSelect = function (e) {
+        var file = e.target.files[0];
+        statusOutput.innerText = "uploading ...";
+        // Generate a random name for the image.
+        var fileName = auth.currentUser.uid + "/expense.jpg";
+        storage.ref().child('images/' + fileName).put(file).then(snapshot => {
+            statusOutput.innerText = "done uploading...";
+        }).catch(error => {
+            console.error(error);
+        });
+    };
 
-  var generateName = function() {
-    return "expense.jpg";
-  }
+    // When we upload an image, handle it!
+    imageInput.addEventListener('change', handleFileSelect, false);
 
-  // When we upload an image, handle it!
-  imageInput.addEventListener('change', handleFileSelect, false);
 </script>
-
 </body>
 </html>

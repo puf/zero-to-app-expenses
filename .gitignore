@@ -1,3 +1,4 @@
 .firebase
 *.swp
 *.swo
+functions/node_modules

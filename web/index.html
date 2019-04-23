@@ -29,7 +29,9 @@
 <input type="file" accept="image/*" id="capture-photo" capture="camera"><br/>
 <span id="status"></span>
 <br/>
-<div id="expenses"></div>
+<div><span>Receipt:</span> <span id="receipt-amount"></span></div>
+<div><span>My total:</span> <span id="user-amount"></span></div>
+<div><span>Team total:</span> <span id="team-amount"></span></div>
 
 <script>
     /** Auth and upload **/
@@ -54,10 +56,9 @@
      * Step AUTH 2: Listening to state change to show appropriate UI.
      */
     auth.onAuthStateChanged(function (user) {
-        console.log("onAuthStateChanged", user);
         authElm.style.display = (user) ? 'none' : '';
         signoutButton.style.display = (user) ? '' : 'none';
-        getExpenses();
+        setupFirestore();
     });
     /**
      * Step AUTH 3: Sign out because ... signing out is important.
@@ -69,7 +70,8 @@
         var file = e.target.files[0];
         statusOutput.innerText = "uploading ...";
         // Generate a random name for the image.
-        var fileName = 'expenses/' + auth.currentUser.uid + "/expense.jpg";
+        var expenseId = (new Date()).getTime();
+        var filename = 'receipts/' + auth.currentUser.uid + "/" + expenseId;
         storage.ref().child(filename).put(file).then(snapshot => {
             statusOutput.innerText = "done uploading...";
         }).catch(error => {
@@ -83,11 +85,23 @@
     /**
      * Read from Firestore
      */
-     var getExpenses = function() {
-         firestore.collection("expenses").where("uid", "==", auth.currentUser.uid)
+     var setupFirestore = function() {
+         firestore.collection("users").doc(auth.currentUser.uid)
+            .onSnapshot(function(docSnapshot) {
+                if (docSnapshot != null) {
+                  var data = docSnapshot.data();
+                  console.log("user document", data);
+                  document.getElementById("user-amount").innerHTML = data["user_cost"];
+                  document.getElementById("team-amount").innerHTML = data["team_cost"];
+                }
+            });
+         firestore.collection("users/" + auth.currentUser.uid + "/expenses")
+            .orderBy("created_at", "desc").limit(1)
             .onSnapshot(function(querySnapshot) {
                 querySnapshot.forEach(doc => {
-                  console.log(doc.data());
+                  var data = doc.data();
+                  console.log("expense document", data);
+                  document.getElementById("receipt-amount").innerHTML = data["item_cost"];
                 });
             });
      };

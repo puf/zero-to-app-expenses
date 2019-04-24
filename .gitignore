@@ -2,3 +2,7 @@
 *.swp
 *.swo
 functions/node_modules
+.gradle
+.idea
+android/build
+.DS_Store

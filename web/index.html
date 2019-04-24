@@ -66,17 +66,19 @@
     signoutButton.addEventListener('click', function (e) {
         auth.signOut();
     });
-    function handleFileSelect(e) {
+    async function handleFileSelect(e) {
         const file = e.target.files[0];
         statusOutput.innerText = 'uploading ...';
         // Generate a random name for the image.
         const expenseId = (new Date()).getTime();
-        const filename = 'receipts/' + auth.currentUser.uid + '/' + expenseId;
-        storage.ref().child(filename).put(file).then(snapshot => {
+        const filename = `receipts/${auth.currentUser.uid}/${expenseId}`;
+        try {
+            let snapshot = await storage.ref().child(filename).put(file);
             statusOutput.innerText = 'done uploading...';
-        }).catch(error => {
+        } catch(error) {
             console.error(error);
-        });
+        }
+
     };
 
     // When we upload an image, handle it!

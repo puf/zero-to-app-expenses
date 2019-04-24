@@ -40,7 +40,7 @@
     authElm = document.querySelector('#firebaseui-auth-container'),
         signoutButton = document.querySelector("#signout-button");
     var auth = firebase.auth(),
-        firebaseui = new firebaseui.auth.AuthUI(auth),
+        firebaseui = new firebaseui.auth.AuthUI(auth);
         storage = firebase.storage(),
         firestore = firebase.firestore();
     /**
@@ -55,7 +55,7 @@
     /**
      * Step AUTH 2: Listening to state change to show appropriate UI.
      */
-    auth.onAuthStateChanged(function (user) {
+    auth.onAuthStateChanged((user) => {
         authElm.style.display = (user) ? 'none' : '';
         signoutButton.style.display = (user) ? '' : 'none';
         setupFirestore();
@@ -66,14 +66,14 @@
     signoutButton.addEventListener('click', function (e) {
         auth.signOut();
     });
-    var handleFileSelect = function (e) {
-        var file = e.target.files[0];
-        statusOutput.innerText = "uploading ...";
+    function handleFileSelect(e) {
+        const file = e.target.files[0];
+        statusOutput.innerText = 'uploading ...';
         // Generate a random name for the image.
-        var expenseId = (new Date()).getTime();
-        var filename = "receipts/" + auth.currentUser.uid + "/" + expenseId;
+        const expenseId = (new Date()).getTime();
+        const filename = 'receipts/' + auth.currentUser.uid + '/' + expenseId;
         storage.ref().child(filename).put(file).then(snapshot => {
-            statusOutput.innerText = "done uploading...";
+            statusOutput.innerText = 'done uploading...';
         }).catch(error => {
             console.error(error);
         });
@@ -85,23 +85,23 @@
     /**
      * Read from Firestore
      */
-     var setupFirestore = function() {
-         firestore.collection("users").doc(auth.currentUser.uid)
-            .onSnapshot(function(docSnapshot) {
-                if (docSnapshot != null) {
+     function setupFirestore() {
+         firestore.collection('users').doc(auth.currentUser.uid)
+            .onSnapshot((docSnapshot) => {
+                if (docSnapshot) {
                   var data = docSnapshot.data();
-                  console.log("user document", data);
-                  document.getElementById("user-amount").innerHTML = data.user_cost;
-                  document.getElementById("team-amount").innerHTML = data.team_cost;
+                  console.log('user document', data);
+                  document.getElementById('user-amount').innerHTML = data.user_cost;
+                  document.getElementById('team-amount').innerHTML = data.team_cost;
                 }
             });
-         firestore.collection("users/" + auth.currentUser.uid + "/expenses")
-            .orderBy("created_at", "desc").limit(1)
-            .onSnapshot(function(querySnapshot) {
+         firestore.collection('users/' + auth.currentUser.uid + '/expenses')
+            .orderBy('created_at', 'desc').limit(1)
+            .onSnapshot((querySnapshot) => {
                 querySnapshot.forEach(doc => {
                   var data = doc.data();
-                  console.log("expense document", data);
-                  document.getElementById("receipt-amount").innerHTML = data.item_cost;
+                  console.log('expense document', data);
+                  document.getElementById('receipt-amount').innerHTML = data.item_cost;
                 });
             });
      };

@@ -71,7 +71,7 @@
         statusOutput.innerText = "uploading ...";
         // Generate a random name for the image.
         var expenseId = (new Date()).getTime();
-        var filename = 'receipts/' + auth.currentUser.uid + "/" + expenseId;
+        var filename = "receipts/" + auth.currentUser.uid + "/" + expenseId;
         storage.ref().child(filename).put(file).then(snapshot => {
             statusOutput.innerText = "done uploading...";
         }).catch(error => {
@@ -91,8 +91,8 @@
                 if (docSnapshot != null) {
                   var data = docSnapshot.data();
                   console.log("user document", data);
-                  document.getElementById("user-amount").innerHTML = data["user_cost"];
-                  document.getElementById("team-amount").innerHTML = data["team_cost"];
+                  document.getElementById("user-amount").innerHTML = data.user_cost;
+                  document.getElementById("team-amount").innerHTML = data.team_cost;
                 }
             });
          firestore.collection("users/" + auth.currentUser.uid + "/expenses")
@@ -101,7 +101,7 @@
                 querySnapshot.forEach(doc => {
                   var data = doc.data();
                   console.log("expense document", data);
-                  document.getElementById("receipt-amount").innerHTML = data["item_cost"];
+                  document.getElementById("receipt-amount").innerHTML = data.item_cost;
                 });
             });
      };

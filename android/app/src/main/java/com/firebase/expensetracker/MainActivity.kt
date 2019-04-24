@@ -81,8 +81,8 @@ class MainActivity : AppCompatActivity() {
             if (documentSnapshot != null && documentSnapshot.exists()) {
                 val userAmountView = this.findViewById<TextView>(R.id.user_amount)
                 val teamAmountView = this.findViewById<TextView>(R.id.team_amount)
-                userAmountView.text = ""+documentSnapshot.get("user_cost")
-                teamAmountView.text = ""+documentSnapshot.get("team_cost")
+                userAmountView.text = roundAmount(documentSnapshot.get("user_cost")!!).toString()
+                teamAmountView.text = roundAmount(documentSnapshot.get("team_cost")!!).toString()
             }
         }
 
@@ -144,8 +144,14 @@ class MainActivity : AppCompatActivity() {
         val currencyView = this.findViewById<TextView>(R.id.currency)
         val receiptView = this.findViewById<ImageView>(R.id.receipt)
         showMessage("Found amount ${data["item_cost"]}")
-        amountView.text = data["item_cost"].toString()
-        if (data.containsKey("currency")) currencyView.text = data["currency"].toString();
+        amountView.text = roundAmount(data["item_cost"]!!).toString()
+        //if (data.containsKey("currency")) currencyView.text = data["currency"].toString();
         if (data.contains("receipt")) Glide.with(this).load(data["receipt"]).into(receiptView);
+    }
+    private fun roundAmount(amount: Any): Double {
+        return roundAmount(amount as Double)
+    }
+    private fun roundAmount(amount: Double): Double{
+        return Math.round(amount * 100.0) / 100.0
     }
 }

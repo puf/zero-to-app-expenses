@@ -1,13 +1,15 @@
 const functions = require('firebase-functions');
 const path = require('path');
 const admin = require('firebase-admin');
+const vision = require('@google-cloud/vision');
+
+const visionClient = Vision({
+  projectId: 'z2a-expenses'
+});
+const bucket = 'z2a-expenses.appspot.com';
+
 admin.initializeApp();
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
+
 exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
   const fileBucket = object.bucket; // The Storage bucket that contains the file.
   const filePath = object.name; // File path in the bucket.

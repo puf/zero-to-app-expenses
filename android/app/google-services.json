@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "95011140706",
+    "firebase_url": "https://z2a-expenses.firebaseio.com",
+    "project_id": "z2a-expenses",
+    "storage_bucket": "z2a-expenses.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:95011140706:android:6e82a291ba437a37",
+        "android_client_info": {
+          "package_name": "com.firebase.expensetracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "95011140706-gmfs3fpaur4qt541o9d3gfus2fuil4co.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.firebase.expensetracker",
+            "certificate_hash": "f12c97200ade8ca7a1f0470802888e2702154f5e"
+          }
+        },
+        {
+          "client_id": "95011140706-0k6ibgf74tf6q3rlrcg6a9cv3itlcprp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmk69PZuuZ9L9j8NolN0bXo6c_Ec7LmwI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "95011140706-0k6ibgf74tf6q3rlrcg6a9cv3itlcprp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,7 +1,7 @@
 const functions = require('firebase-functions');
 const path = require('path');
 const admin = require('firebase-admin');
-const vision = require('@google-cloud/vision');
+const Vision = require('@google-cloud/vision');
 
 const visionClient = Vision({
   projectId: 'z2a-expenses'

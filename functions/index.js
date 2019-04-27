@@ -30,7 +30,6 @@ exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
       expenseDoc.set({
         uid: fileDir,
         created_at: admin.firestore.FieldValue.serverTimestamp(),
-        //url: ,
         item_cost: Math.round(Math.random() * 10000) / 100
       }).then(resolve).catch(reject);
     }, 2000 + Math.random() * 4000);

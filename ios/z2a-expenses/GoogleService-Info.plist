@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>95011140706-4nbap5gpqb94gsgbqrsn1v68ma9ldpse.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.95011140706-4nbap5gpqb94gsgbqrsn1v68ma9ldpse</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>95011140706-gmfs3fpaur4qt541o9d3gfus2fuil4co.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCZjaFadQKdEEJx5C64zAvFGd09AdRaJGY</string>
+	<key>GCM_SENDER_ID</key>
+	<string>95011140706</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.firebase.z2a-expenses</string>
+	<key>PROJECT_ID</key>
+	<string>z2a-expenses</string>
+	<key>STORAGE_BUCKET</key>
+	<string>z2a-expenses.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:95011140706:ios:cca8cfda64f5d817</string>
+	<key>DATABASE_URL</key>
+	<string>https://z2a-expenses.firebaseio.com</string>
+</dict>
+</plist>

@@ -28,11 +28,10 @@ exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
 
   return new Promise(function(resolve, reject) {
     setTimeout(function() {
-      let expenseDoc = admin.firestore().collection('users').doc(fileDir).collection('expenses').doc(fileName);
+      let expenseDoc = admin.firestore().doc(`users/${fileDir}/expenses/${fileName}`);
       expenseDoc.set({
         uid: fileDir,
         created_at: admin.firestore.FieldValue.serverTimestamp(),
-        //url: ,
         item_cost: Math.round(Math.random() * 10000) / 100
       }).then(resolve).catch(reject);
     }, 2000 + Math.random() * 4000);
@@ -52,25 +51,21 @@ exports.calculateUserCost = functions.firestore
   }, {merge: true});
 });
 
-exports.calculateTeamCost = functions.firestore
-.document('users/{uid}').onWrite((change, context) => {
+  exports.calculateTeamCost = functions.firestore
+  .document('users/{uid}').onWrite((change, context) => {
   let old_total = change.before && change.before.data() && change.before.data().user_cost ? change.before.data().user_cost : 0;
   let new_total = change.after.data().user_cost;
-  if (old_total !== new_total) {
-    console.log(`Updating all user's team_cost by ${new_total} - ${old_total}`);
-    return admin.firestore().collection('users').get().then(function(querySnapshot) {
-      let promises = [];
-      querySnapshot.forEach(function(doc) {
-        promises.push(
-          doc.ref.update({ 
-            team_cost: admin.firestore.FieldValue.increment(new_total - old_total) 
-          })
-        );
-      });
-      return Promise.all(promises);
-    })
-  }
-  else {
-    return true;
-  }
+  if (old_total === new_total) return true;
+  console.log(`Updating all user's team_cost by ${new_total} - ${old_total}`);
+  return admin.firestore().collection('users').get().then(function(querySnapshot) {
+    let promises = [];
+    querySnapshot.forEach(function(doc) {
+      promises.push(
+        doc.ref.update({ 
+          team_cost: admin.firestore.FieldValue.increment(new_total - old_total) 
+        })
+      );
+    });
+    return Promise.all(promises);
+  })
 });

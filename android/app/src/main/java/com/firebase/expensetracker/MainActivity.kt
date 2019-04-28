@@ -47,30 +47,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         fab.setOnClickListener { _ ->
-            //val intent = Intent(Intent.ACTION_PICK)//, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-
-            //val intent = Intent(Intent.ACTION_GET_CONTENT, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            //val intent = Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
-            // 1. Show file picker
             val getImageIntent = Intent(Intent.ACTION_GET_CONTENT)
             getImageIntent.type = "image/jpeg"
             startActivityForResult(getImageIntent, RC_PHOTO_PICKER)
-
-            // 2. Show camera
-            //val cameraIntent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
-            //startActivityForResult(cameraIntent, RC_PHOTO_PICKER)
-            // TODO: the result code for this doesn't work yet
-
-            // 3. Show chooser
-            //val chooser = Intent.createChooser(getImageIntent, "Select Picture")
-            //chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
-            //startActivityForResult(chooser, RC_PHOTO_PICKER)
         }
 
     }
 
     private fun attachFirestoreListeners() {
-        val userDocRef = FirebaseFirestore.getInstance().collection("users").document(getUserId())
+        val firestore = FirebaseFirestore.getInstance()
+        val userDocRef = firestore.collection("users").document(getUserId())
         userDocRef.addSnapshotListener { documentSnapshot, _ ->
             if (documentSnapshot != null && documentSnapshot.exists()) {
                 var text = formatAmount(documentSnapshot.get("user_cost"))
@@ -86,14 +72,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        // Wait for document with expense data
+        // Listen for documents with expense data
         userDocRef.collection("expenses")
                 .orderBy("created_at", Query.Direction.DESCENDING)
                 .limit(1)
                 .addSnapshotListener { querySnapshot, e ->
                     if (e != null) showError("Error reading expenses", e)
                     querySnapshot?.forEach { doc ->
-                        val text = formatAmount(doc!!.data!!["item_cost"])
+                        val data = doc!!.data!!
+                        val text = formatAmount(data["item_cost"])
                         showMessage("Found amount ${text}")
                         amount.text = text
                     }
@@ -102,18 +89,17 @@ class MainActivity : AppCompatActivity() {
 
     public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == RC_PHOTO_PICKER && resultCode == Activity.RESULT_OK) {
-            val selectedImageUri = data?.data!!
+            // Get a reference to the image the user selected
+            val file = data?.data!!
 
             // Get a reference to the location where we'll store our receipts
-            val receiptsRef = FirebaseStorage.getInstance().getReference("receipts")
-            val storageRef = receiptsRef.child(getUserId())
-            // TODO: generate UUID?
-            val expenseId = System.currentTimeMillis().toString()
-            val photoRef = storageRef.child(expenseId)
+            val expenseId = generateUniqueId()
+            val filename = "receipts/${getUserId()}/${expenseId}"
+            val storageRef = FirebaseStorage.getInstance().getReference(filename)
 
             // Upload file to Firebase Storage
             showMessage("Uploading receipt")
-            photoRef.putFile(selectedImageUri).addOnSuccessListener {
+            storageRef.putFile(file).addOnSuccessListener {
                 showMessage("Receipt uploaded, waiting for results...")
             }.addOnFailureListener{ error ->
                 showMessage("Upload failed: ${error.message}")
@@ -130,6 +116,16 @@ class MainActivity : AppCompatActivity() {
                 showMessage(response?.error, Log.ERROR)
             }
         }
+    }
+    private fun onSignInButtonClicked() {
+        startActivityForResult(
+                AuthUI.getInstance()
+                        .createSignInIntentBuilder()
+                        .setAvailableProviders(arrayListOf(
+                                AuthUI.IdpConfig.EmailBuilder().build(),
+                                AuthUI.IdpConfig.GoogleBuilder().build()))
+                        .build(),
+                RC_SIGN_IN)
     }
 
     private fun showMessage(msg: Any?, priority: Int = Log.INFO) {
@@ -157,6 +153,7 @@ class MainActivity : AppCompatActivity() {
     private fun roundAmount(amount: Any): Double = roundAmount(amount as Double)
     private fun roundAmount(amount: Double): Double = Math.round(amount * 100.0) / 100.0
     private fun formatAmount(amount: Any?): String = String.format("%10.2f", amount as Double)
+    private fun generateUniqueId() = System.currentTimeMillis().toString()
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
@@ -172,14 +169,7 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.menu_signin -> {
-                startActivityForResult(
-                        AuthUI.getInstance()
-                                .createSignInIntentBuilder()
-                                .setAvailableProviders(arrayListOf(
-                                        AuthUI.IdpConfig.EmailBuilder().build(),
-                                        AuthUI.IdpConfig.GoogleBuilder().build()))
-                                .build(),
-                        RC_SIGN_IN)
+                onSignInButtonClicked()
             }
             R.id.menu_signout -> {
                 AuthUI.getInstance().signOut(this)
@@ -187,4 +177,5 @@ class MainActivity : AppCompatActivity() {
         }
         return super.onOptionsItemSelected(item)
     }
+
 }

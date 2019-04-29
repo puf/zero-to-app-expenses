@@ -1,14 +1,29 @@
 const functions = require('firebase-functions');
 const path = require('path');
 const admin = require('firebase-admin');
-const Vision = require('@google-cloud/vision');
+const vision = require('@google-cloud/vision');
+const receipt = require('./receipt');
 
-const visionClient = Vision({
+const visionClient = new vision.ImageAnnotatorClient({
   projectId: 'z2a-expenses'
 });
 const bucket = 'z2a-expenses.appspot.com';
 
 admin.initializeApp();
+
+exports.ocrReceipt= functions.storage.object().onFinalize(object => {
+  console.log("Uploaded object:", object);
+  return visionClient.textDetection(`gs://${object.bucket}/${object.name}`)
+    .then(([detections]) => {
+      if (detections.textAnnotations.length > 0) {
+        var data = detections.textAnnotations[0].description;
+        console.log("Data:", data);
+        console.log("Detected Total:", receipt.detectTotal(data));
+      }
+    }).catch(err => {
+      console.error(err);
+    });
+});
 
 exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
   const fileBucket = object.bucket; // The Storage bucket that contains the file.

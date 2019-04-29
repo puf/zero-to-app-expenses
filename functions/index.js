@@ -19,6 +19,8 @@ exports.ocrReceipt= functions.storage.object().onFinalize(object => {
         var data = detections.textAnnotations[0].description;
         console.log("Data:", data);
         console.log("Detected Total:", receipt.detectTotal(data));
+        console.log("Annotations:", detections.textAnnotations);
+        console.log("Detected Max:", receipt.detectMax(detections.textAnnotations));
       }
     }).catch(err => {
       console.error(err);

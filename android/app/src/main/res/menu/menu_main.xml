@@ -3,10 +3,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.firebase.expensetracker.MainActivity">
     <item
-        android:id="@+id/menu_auth"
+        android:id="@+id/menu_signin"
         android:orderInCategory="100"
         android:title="Sign in"
         app:showAsAction="always"
-    />
+        />
+    <item
+        android:id="@+id/menu_signout"
+        android:orderInCategory="101"
+        android:title="Sign out"
+        app:showAsAction="always"
+        />
     <!--android:icon="@drawable/ic_person_white_24dp"-->
 </menu>

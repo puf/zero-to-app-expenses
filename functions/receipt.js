@@ -1,5 +1,6 @@
 let keywords = ["payment amount", "amount due", "amount", "grand total", "total"];
 let moneyRegex = /^\$?([0-9]+(\.[0-9]{1,2})?)$/;
+let debug = true;
 
 const parseAmount = function(line) {
   let result = moneyRegex.exec(line);
@@ -35,7 +36,9 @@ exports.detectTotal = function(raw) {
       }
     }
   }
-  console.log("Candidate amounts:", candidates);
+  if (debug) {
+    console.log("Candidate amounts:", candidates);
+  }
 
   // choose the max candidate ... I guess? Or most repeated one?
   if (candidates.length === 0) {

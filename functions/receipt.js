@@ -71,19 +71,14 @@ exports.detectTotal = function(raw) {
   }
 };
 
-function findTotal(result) {
-  const detections = result.textAnnotations;
+exports.findTotal = function findTotal(detections) {
   const regex = '^[$]?\s*(\\d+[\\.,]\\d{2})$';
-  detections.forEach(text => {
-    if (text.description.match(regex)) {
-      console.log("Found amount: "+text.description);
-    }
-  });
   const amounts = detections
     .filter(text => text.description.match(regex))
     .map(text => text.description.match(regex)[1])
     .map(text => text.replace(',', '.'))
-    .map(text => Number(text));
+    .map(text => Number(text))
+    .concat([0.0]);
   console.log(amounts);
   return Math.max.apply(null, amounts);
 }

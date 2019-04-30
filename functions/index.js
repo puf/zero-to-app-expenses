@@ -4,12 +4,13 @@ const admin = require('firebase-admin');
 const vision = require('@google-cloud/vision');
 const receipt = require('./receipt');
 
+
+admin.initializeApp();
+/*
 const visionClient = new vision.ImageAnnotatorClient({
   projectId: 'z2a-expenses'
 });
 const bucket = 'z2a-expenses.appspot.com';
-
-admin.initializeApp();
 
 exports.ocrReceipt= functions.storage.object().onFinalize(object => {
   console.log("Uploaded object:", object);
@@ -27,34 +28,53 @@ exports.ocrReceipt= functions.storage.object().onFinalize(object => {
     });
 });
 
-exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
+exports.oldScanReceipt = functions.storage.object().onFinalize(function(object) {
   const fileBucket = object.bucket; // The Storage bucket that contains the file.
   const filePath = object.name; // File path in the bucket.
-  const contentType = object.contentType; // File content type.
-  const metageneration = object.metageneration; // Number of times metadata has been generated. New objects have a value of 1.
-  // Exit if this is triggered on a file that is not an image.
-  if (!contentType.startsWith('image/')) {
-    return console.log('This is not an image.');
-  }
 
-  console.log(filePath)
-
-  // Get the file name and UID
+  // Get the UID and file name from the path
+  const uid = path.dirname(filePath).substring(filePath.indexOf('/')+1);
   const fileName = path.basename(filePath);
-  const fileDir = path.dirname(filePath).substring(filePath.indexOf('/')+1);
+
+  // Determine the document to write the amount from this receipt to
+  let expenseDoc = admin.firestore().doc(`users/${uid}/expenses/${fileName}`);
 
   return new Promise(function(resolve, reject) {
     setTimeout(function() {
-      let expenseDoc = admin.firestore().doc(`users/${fileDir}/expenses/${fileName}`);
       expenseDoc.set({
-        uid: fileDir,
+        uid: uid,
         created_at: admin.firestore.FieldValue.serverTimestamp(),
         item_cost: Math.round(Math.random() * 10000) / 100
       }).then(resolve).catch(reject);
     }, 2000 + Math.random() * 4000);
   })
+});
+*/
+
+exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
+  const fileBucket = object.bucket; // The Storage bucket that contains the file.
+  const filePath = object.name; // File path in the bucket.
+
+  // Get the UID and file name from the path
+  const uid = path.dirname(filePath).substring(filePath.indexOf('/')+1);
+  const fileName = path.basename(filePath);
+
+  // Determine the document to write the amount from this receipt to
+  let expenseDoc = admin.firestore().doc(`users/${uid}/expenses/${fileName}`);
+
+  const visionClient = new vision.ImageAnnotatorClient();
+  return visionClient.textDetection(`gs://${fileBucket}/${filePath}`).then(function([result]) {
+    const detections = result.textAnnotations;
+    const amount = receipt.findTotal(detections);
+    return expenseDoc.set({
+      uid: uid,
+      created_at: admin.firestore.FieldValue.serverTimestamp(),
+      item_cost: amount
+    })
+  })
 
 });
+
 
 exports.calculateUserCost = functions.firestore
 .document('users/{uid}/expenses/{expenseId}')

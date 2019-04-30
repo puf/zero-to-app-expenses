@@ -48,3 +48,20 @@ exports.detectTotal = function(raw) {
     return Math.max.apply(null, candidates);
   }
 };
+
+function findTotal(result) {
+  const detections = result.textAnnotations;
+  const regex = '^[$]?\s*(\\d+[\\.,]\\d{2})$';
+  detections.forEach(text => {
+    if (text.description.match(regex)) {
+      console.log("Found amount: "+text.description);
+    }
+  });
+  const amounts = detections
+    .filter(text => text.description.match(regex))
+    .map(text => text.description.match(regex)[1])
+    .map(text => text.replace(',', '.'))
+    .map(text => Number(text));
+  console.log(amounts);
+  return Math.max.apply(null, amounts);
+}

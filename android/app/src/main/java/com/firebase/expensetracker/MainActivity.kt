@@ -59,17 +59,8 @@ class MainActivity : AppCompatActivity() {
         val userDocRef = firestore.collection("users").document(getUserId())
         userDocRef.addSnapshotListener { documentSnapshot, _ ->
             if (documentSnapshot != null && documentSnapshot.exists()) {
-                var text = formatAmount(documentSnapshot.get("user_cost"))
-                if (!user_amount.text.equals(text)) {
-                    showMessage("My cost was updated to " + text)
-                    user_amount.text = text
-                }
-
-                text = formatAmount(documentSnapshot.get("team_cost"))
-                if (!team_amount.text.equals(text)) {
-                    showMessage("Team cost was updated to " + text)
-                    team_amount.text = text
-                }
+                user_amount.text = formatAmount(documentSnapshot.get("user_cost"))
+                team_amount.text = formatAmount(documentSnapshot.get("team_cost"))
             }
         }
         // Listen for documents with expense data
@@ -78,45 +69,12 @@ class MainActivity : AppCompatActivity() {
                 .limit(1)
                 .addSnapshotListener { querySnapshot, e ->
                     if (e != null) showError("Error reading expenses", e)
-                    querySnapshot?.forEach { doc ->
-                        val data = doc!!.data!!
-                        val text = formatAmount(data["item_cost"])
-                        showMessage("Found amount ${text}")
-                        amount.text = text
-                    }
+
+                    val data = querySnapshot?.documents!![0].data!!
+                    amount.text = formatAmount(data["item_cost"])
                 }
     }
 
-    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == RC_PHOTO_PICKER && resultCode == Activity.RESULT_OK) {
-            // Get a reference to the image the user selected
-            val file = data?.data!!
-
-            // Get a reference to the location where we'll store our receipts
-            val expenseId = generateUniqueId()
-            val filename = "receipts/${getUserId()}/${expenseId}"
-            val storageRef = FirebaseStorage.getInstance().getReference(filename)
-
-            // Upload file to Firebase Storage
-            showMessage("Uploading receipt")
-            storageRef.putFile(file).addOnSuccessListener {
-                showMessage("Receipt uploaded, waiting for results...")
-            }.addOnFailureListener{ error ->
-                showMessage("Upload failed: ${error.message}")
-                Log.e("TAG", "Upload failed", error)
-            }
-        }
-        else if (requestCode == RC_SIGN_IN) {
-            val response = IdpResponse.fromResultIntent(data)
-
-            if (resultCode == Activity.RESULT_OK) {
-                val user = FirebaseAuth.getInstance().currentUser!!
-                showMessage("Signed in: ${user.displayName}")
-            } else {
-                showMessage(response?.error, Log.ERROR)
-            }
-        }
-    }
     private fun onSignInButtonClicked() {
         startActivityForResult(
                 AuthUI.getInstance()
@@ -126,6 +84,45 @@ class MainActivity : AppCompatActivity() {
                                 AuthUI.IdpConfig.GoogleBuilder().build()))
                         .build(),
                 RC_SIGN_IN)
+    }
+
+    private fun onSignInCompleted(data: Intent?, resultCode: Int) {
+        val response = IdpResponse.fromResultIntent(data)
+
+        if (resultCode == Activity.RESULT_OK) {
+            val user = FirebaseAuth.getInstance().currentUser!!
+            showMessage("Signed in: ${user.displayName}")
+        } else {
+            showMessage(response?.error, Log.ERROR)
+        }
+    }
+
+    private fun onImageSelected(data: Intent?) {
+        // Get a reference to the image the user selected
+        val file = data?.data!!
+
+        // Get a reference to the location where we'll store our receipts
+        val expenseId = generateUniqueId()
+        val filename = "receipts/${getUserId()}/${expenseId}"
+        val storageRef = FirebaseStorage.getInstance().getReference(filename)
+
+        // Upload file to Firebase Storage
+        showMessage("Uploading receipt")
+        storageRef.putFile(file).addOnSuccessListener {
+            showMessage("Receipt uploaded, waiting for results...")
+        }.addOnFailureListener { error ->
+            showMessage("Upload failed: ${error.message}")
+            Log.e("TAG", "Upload failed", error)
+        }
+    }
+
+    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == RC_PHOTO_PICKER && resultCode == Activity.RESULT_OK) {
+            onImageSelected(data)
+        }
+        else if (requestCode == RC_SIGN_IN) {
+            onSignInCompleted(data, resultCode)
+        }
     }
 
     private fun showMessage(msg: Any?, priority: Int = Log.INFO) {
@@ -143,16 +140,8 @@ class MainActivity : AppCompatActivity() {
         Log.e("TAG", msg.toString(), tr)
     }
 
-    private fun showExpense(data: Map<String, Any>) {
-        val text = formatAmount(data["item_cost"])
-        showMessage("Found amount ${text}")
-        amount.text = text
-    }
-
     private fun getUserId() = FirebaseAuth.getInstance().currentUser?.uid ?: "yes"
-    private fun roundAmount(amount: Any): Double = roundAmount(amount as Double)
-    private fun roundAmount(amount: Double): Double = Math.round(amount * 100.0) / 100.0
-    private fun formatAmount(amount: Any?): String = String.format("%10.2f", amount as Double)
+    private fun formatAmount(amount: Any?): String = String.format("%10.2f", (amount as Number).toDouble())
     private fun generateUniqueId() = System.currentTimeMillis().toString()
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

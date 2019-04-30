@@ -42,8 +42,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
   func application(_ app: UIApplication, open url: URL,
-                   options: [UIApplicationOpenURLOptionsKey : Any]) -> Bool {
-    let sourceApplication = options[UIApplicationOpenURLOptionsKey.sourceApplication] as! String?
+                   options: [UIApplication.OpenURLOptionsKey : Any]) -> Bool {
+    let sourceApplication = options[.sourceApplication] as! String?
     if FUIAuth.defaultAuthUI()?.handleOpen(url, sourceApplication: sourceApplication) ?? false {
       return true
     }

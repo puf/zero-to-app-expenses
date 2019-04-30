@@ -22,6 +22,10 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     @IBOutlet weak var teamSpendLabel: UILabel!
     @IBOutlet weak var lastItemLabel: UILabel!
     
+    // Need to configure Firebase here
+    // If you do it in AppDelegate.swift, the app will crash
+    // Because the view controller is initialized before AppDelegate loads
+    // Apparently this is a semi-known issue with storyboard init
     required init?(coder aDecoder: NSCoder) {
         FirebaseApp.configure()
         self.authUI = FUIAuth.defaultAuthUI()!
@@ -35,13 +39,6 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Initialize FirebaseUI
-        self.authUI = FUIAuth.defaultAuthUI()!
-        self.authUI.providers = [
-            FUIGoogleAuth()
-        ]
-        self.authUI.delegate = self
-        
         // Initialize UINavigationController
         self.title = "My I/O Expenses"
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .camera, target: self, action: #selector(selectPhoto))
@@ -52,36 +49,98 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         self.imagePickerController.sourceType = .photoLibrary // change to .camera when using an actual device
         self.imagePickerController.delegate = self
         
+        // Update login button text
+        self.auth.addStateDidChangeListener { (auth, user) in
+            if (user != nil) {
+                self.navigationItem.leftBarButtonItem?.title = "Log out"
+            } else {
+                self.navigationItem.leftBarButtonItem?.title = "Log in"
+            }
+        }
+        
+        // Set up Firestore listeners
+        self.listenForExpenses()
     }
     
+    // Upload a file
     func uploadReceiptImage(data: Data) {
+        // TODO 1: Prepare for upload
         let storageMetadata = StorageMetadata()
         storageMetadata.contentType = "image/jpeg"
         
-        let userId = self.auth.currentUser?.uid ?? "12345"
+        let userId = getCurrentUser()
         let expenseId = NSUUID().uuidString
         
         let storageRef = storage.reference().child("receipts/\(userId)/\(expenseId)")
-        storageRef.putData(data, metadata: nil) { (metadata, error) in
-            if (error != nil) {
-                print(error.debugDescription)
-            } else {
-                let alertViewController = UIAlertController(title: "Upload succeeded!", message: "Your upload succeeded", preferredStyle: .alert)
-                alertViewController.addAction(UIAlertAction(title: "Ok", style: UIAlertAction.Style.default, handler: { (action) in
-                    self.dismiss(animated: true, completion: nil)
-                }))
-                self.present(alertViewController, animated: true, completion: nil)
-            }
+        
+        // TODO 2: Upload file
+        self.showMessage(message: "Uploading receipt")
+        let uploadTask = storageRef.putData(data)
+        
+        // TODO 3: handle success
+        uploadTask.observe(.success) { (snapshot) in
+            self.showMessage(message: "Uploaded succeeded!")
+        }
+        
+        // TODO 4: handle failure
+        uploadTask.observe(.failure) { (snapshot) in
+            self.showMessage(message: "Uploaded failed!")
         }
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        if (self.auth.currentUser != nil) {
-            self.navigationItem.leftBarButtonItem?.title = "Log out"
-            self.listenForExpenses()
+    func presentAuthViewController() {
+        // TODO 5: Configure FirebaseUI
+        self.authUI = FUIAuth.defaultAuthUI()!
+        self.authUI.providers = [
+            FUIGoogleAuth()
+        ]
+        self.authUI.delegate = self
+        let authViewController = self.authUI.authViewController()
+        self.present(authViewController, animated: true, completion: nil)
+    }
+    
+    // TODO 6: Login delegate methods
+    func authUI(_ authUI: FUIAuth, didSignInWith authDataResult: AuthDataResult?, error: Error?) {
+        if (error != nil) {
+            self.showMessage(message: "Login failed!")
         } else {
-            self.navigationItem.leftBarButtonItem?.title = "Log in"
-            self.presentAuthViewController()
+            self.showMessage(message: "Login succeeded!")
+        }
+    }
+    
+    // Listen for expenses in Firestore
+    func listenForExpenses() {
+        let userId = getCurrentUser()
+        
+        // TODO 7: Get the last item uploaded
+        self.firestore.collection("users").document(userId).collection("expenses")
+            .order(by: "created_at", descending: true)
+            .limit(to: 1)
+            .addSnapshotListener { (querySnapshot, error) in
+                // TODO 8: Update the UI
+                guard let documents = querySnapshot?.documents else {
+                    print("Error fetching documents: \(error!)")
+                    return
+                }
+
+                let itemCost = documents.first?["item_cost"] as? Double ?? 0.00
+                self.lastItemLabel?.text = String(itemCost)
+        }
+        
+        // TODO 9: Get all user info
+        self.firestore.collection("users").document(userId)
+            .addSnapshotListener { (documentSnapshot, error) in
+                // TODO 10: Update the UI
+                guard let _ = documentSnapshot else {
+                    print("Error fetching document: \(error!)")
+                    return
+                }
+
+                let yourSpend = documentSnapshot?.get("user_cost") as? Double ?? 0.00
+                self.yourSpendLabel?.text = String(yourSpend)
+                
+                let teamSpend = documentSnapshot?.get("team_cost") as? Double ?? 0.00
+                self.teamSpendLabel?.text = String(teamSpend)
         }
     }
     
@@ -89,19 +148,12 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         if (self.auth.currentUser != nil) {
             do {
                 try self.auth.signOut()
-                self.navigationItem.leftBarButtonItem?.title = "Log in"
             } catch {
-                print("Failed to sign user out: \(error)")
+                self.showMessage(message: "Failed to sign user out!")
             }
         } else {
-            self.navigationItem.leftBarButtonItem?.title = "Log out"
             self.presentAuthViewController()
         }
-    }
-    
-    func presentAuthViewController() {
-        let authViewController = self.authUI.authViewController()
-        self.present(authViewController, animated: true, completion: nil)
     }
     
     @objc func selectPhoto() {
@@ -118,46 +170,22 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         self.dismiss(animated: true, completion: nil)
     }
     
-    // Firestore methods
-    func listenForExpenses() {
-        let uid = self.auth.currentUser?.uid ?? ""
-        self.firestore.collection("users").document(uid)
-            .addSnapshotListener { (documentSnapshot, error) in
-                guard let document = documentSnapshot else {
-                    print("Error fetching document: \(error!)")
-                    return
-                }
-                guard let data = document.data() else {
-                    print("Document data was empty.")
-                    return
-                }
-                let yourSpend = data["user_cost"] as? Double ?? 0.00
-                let teamSpend = data["team_cost"] as? Double ?? 0.00
-                self.yourSpendLabel?.text = String(yourSpend)
-                self.teamSpendLabel?.text = String(teamSpend)
-            }
-        
-        self.firestore.collection("users").document(uid).collection("expenses")
-            .order(by: "created_at", descending: true)
-            .limit(to: 1)
-            .addSnapshotListener { (querySnapshot, error) in
-                guard let documents = querySnapshot?.documents else {
-                    print("Error fetching documents: \(error!)")
-                    return
-                }
-                let itemCost = documents.first?["item_cost"] as? Double ?? 0.00
-                self.lastItemLabel?.text = String(itemCost)
-                
-            }
+    // Show an alert
+    func showMessage(message: String) {
+        let alertViewController = UIAlertController(title: "Expense Status",
+                                                    message: message,
+                                                    preferredStyle: .alert)
+        let dismissAction = UIAlertAction(title: "Ok",
+                                          style: .default,
+                                          handler: { (action) in
+                                            self.dismiss(animated: true, completion: nil)
+        })
+        alertViewController.addAction(dismissAction)
+        self.present(alertViewController, animated: true, completion: nil)
     }
     
-    // FUIAuthDelegate methods
-    func authUI(_ authUI: FUIAuth, didSignInWith authDataResult: AuthDataResult?, error: Error?) {
-        if (error != nil) {
-            print(error.debugDescription)
-        } else {
-            print("Login succeeded!")
-        }
+    func getCurrentUser() -> String {
+        return self.auth.currentUser?.uid ?? "12345"
     }
 
 }

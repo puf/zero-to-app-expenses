@@ -51,69 +51,6 @@ class MainActivity : AppCompatActivity() {
             getImageIntent.type = "image/jpeg"
             startActivityForResult(getImageIntent, RC_PHOTO_PICKER)
         }
-
-    }
-
-    private fun attachFirestoreListeners() {
-        val firestore = FirebaseFirestore.getInstance()
-        val userDocRef = firestore.collection("users").document(getUserId())
-        userDocRef.addSnapshotListener { documentSnapshot, _ ->
-            if (documentSnapshot != null && documentSnapshot.exists()) {
-                user_amount.text = formatAmount(documentSnapshot.get("user_cost"))
-                team_amount.text = formatAmount(documentSnapshot.get("team_cost"))
-            }
-        }
-        // Listen for documents with expense data
-        userDocRef.collection("expenses")
-                .orderBy("created_at", Query.Direction.DESCENDING)
-                .limit(1)
-                .addSnapshotListener { querySnapshot, e ->
-                    if (e != null) showError("Error reading expenses", e)
-
-                    val data = querySnapshot?.documents!![0].data!!
-                    amount.text = formatAmount(data["item_cost"])
-                }
-    }
-
-    private fun onSignInButtonClicked() {
-        startActivityForResult(
-                AuthUI.getInstance()
-                        .createSignInIntentBuilder()
-                        .setAvailableProviders(arrayListOf(
-                                AuthUI.IdpConfig.EmailBuilder().build(),
-                                AuthUI.IdpConfig.GoogleBuilder().build()))
-                        .build(),
-                RC_SIGN_IN)
-    }
-
-    private fun onSignInCompleted(data: Intent?, resultCode: Int) {
-        val response = IdpResponse.fromResultIntent(data)
-
-        if (resultCode == Activity.RESULT_OK) {
-            val user = FirebaseAuth.getInstance().currentUser!!
-            showMessage("Signed in: ${user.displayName}")
-        } else {
-            showMessage(response?.error, Log.ERROR)
-        }
-    }
-
-    private fun onImageSelected(data: Intent?) {
-        // Get a reference to the image the user selected
-        val file = data?.data!!
-
-        // Get a reference to the location where we'll store our receipts
-        val expenseId = generateUniqueId()
-        val filename = "receipts/${getUserId()}/${expenseId}"
-        val storageRef = FirebaseStorage.getInstance().getReference(filename)
-
-        // Upload file to Firebase Storage
-        showMessage("Uploading receipt")
-        storageRef.putFile(file).addOnSuccessListener {
-            showMessage("Receipt uploaded, waiting for results...")
-        }.addOnFailureListener { error ->
-            showMessage("Upload failed: ${error.message}")
-            Log.e("TAG", "Upload failed", error)
-        }
     }
 
     public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -148,13 +85,11 @@ class MainActivity : AppCompatActivity() {
         menuInflater.inflate(R.menu.menu_main, menu)
         return super.onCreateOptionsMenu(menu)
     }
-
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
         menu!!.findItem(R.id.menu_signin).isVisible = FirebaseAuth.getInstance().currentUser == null
         menu!!.findItem(R.id.menu_signout).isVisible = FirebaseAuth.getInstance().currentUser != null
         return super.onPrepareOptionsMenu(menu)
     }
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.menu_signin -> {
@@ -166,5 +101,71 @@ class MainActivity : AppCompatActivity() {
         }
         return super.onOptionsItemSelected(item)
     }
+
+    private fun onImageSelected(data: Intent?) {
+        // Get a reference to the image the user selected
+        val file = data?.data!!
+
+        // Get a reference to the location where we'll store our receipts
+        val expenseId = generateUniqueId()
+        val filename = "receipts/${getUserId()}/${expenseId}"
+        val storageRef = FirebaseStorage.getInstance().getReference(filename)
+
+        // Upload file to Firebase Storage
+        showMessage("Uploading receipt")
+        storageRef.putFile(file).addOnSuccessListener {
+            showMessage("Receipt uploaded, waiting for results...")
+        }.addOnFailureListener { error ->
+            showMessage("Upload failed: ${error.message}")
+            Log.e("TAG", "Upload failed", error)
+        }
+    }
+
+    private fun onSignInButtonClicked() {
+        startActivityForResult(
+                AuthUI.getInstance()
+                        .createSignInIntentBuilder()
+                        .setAvailableProviders(arrayListOf(
+                                AuthUI.IdpConfig.EmailBuilder().build(),
+                                AuthUI.IdpConfig.GoogleBuilder().build()))
+                        .build(),
+                RC_SIGN_IN)
+    }
+
+    private fun onSignInCompleted(data: Intent?, resultCode: Int) {
+        val response = IdpResponse.fromResultIntent(data)
+
+        if (resultCode == Activity.RESULT_OK) {
+            val user = FirebaseAuth.getInstance().currentUser!!
+            showMessage("Signed in: ${user.displayName}")
+        } else {
+            showMessage(response?.error, Log.ERROR)
+        }
+    }
+
+    private fun attachFirestoreListeners() {
+        val firestore = FirebaseFirestore.getInstance()
+        val userDocRef = firestore.collection("users").document(getUserId())
+
+        // Listen for documents with expense data
+        userDocRef.collection("expenses")
+                .orderBy("created_at", Query.Direction.DESCENDING)
+                .limit(1)
+                .addSnapshotListener { querySnapshot, e ->
+                    if (e != null) showError("Error reading expenses", e)
+
+                    val data = querySnapshot?.documents!![0].data!!
+                    amount.text = formatAmount(data["item_cost"])
+                }
+
+        // Listen for document with user and team todal
+        userDocRef.addSnapshotListener { documentSnapshot, _ ->
+            if (documentSnapshot != null && documentSnapshot.exists()) {
+                user_amount.text = formatAmount(documentSnapshot.get("user_cost"))
+                team_amount.text = formatAmount(documentSnapshot.get("team_cost"))
+            }
+        }
+    }
+
 
 }

@@ -16,13 +16,14 @@ exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
     const uid = path.dirname(filePath).substring(filePath.indexOf('/')+1);
     const fileName = path.basename(filePath);
 
-    // Determine the document to write the amount from this receipt to
-    let expenseDoc = admin.firestore().doc(`users/${uid}/expenses/${fileName}`);
-
     const visionClient = new vision.ImageAnnotatorClient();
     return visionClient.textDetection(`gs://${fileBucket}/${filePath}`).then(function([result]) {
       const detections = result.textAnnotations;
       const amount = receipt.findTotal(detections);
+
+      // Determine the document to write the amount from this receipt to
+      let expenseDoc = admin.firestore().doc(`users/${uid}/expenses/${fileName}`);
+
       return expenseDoc.set({
         uid: uid,
         created_at: admin.firestore.FieldValue.serverTimestamp(),

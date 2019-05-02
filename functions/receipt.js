@@ -70,3 +70,15 @@ exports.detectTotal = function(raw) {
     return Math.max.apply(null, candidates);
   }
 };
+
+exports.findTotal = function findTotal(detections) {
+  const regex = '^[$]?\s*(\\d+[\\.,]\\d{2})$';
+  const amounts = detections
+    .filter(text => text.description.match(regex))
+    .map(text => text.description.match(regex)[1])
+    .map(text => text.replace(',', '.'))
+    .map(text => Number(text))
+    .concat([0.0]);
+  console.log(amounts);
+  return Math.max.apply(null, amounts);
+}

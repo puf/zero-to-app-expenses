@@ -71,7 +71,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="fill_parent"
-                    android:id="@+id/amount"
+                    android:id="@+id/lastItemLabel"
                     android:text="0,00"
                     android:layout_marginLeft="10dip"
                     android:textAppearance="?android:attr/textAppearanceLarge"
@@ -127,7 +127,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="fill_parent"
-                    android:id="@+id/user_amount"
+                    android:id="@+id/yourSpendLabel"
                     android:text="0,00"
                     android:layout_marginLeft="10dip"
                     android:textAppearance="?android:attr/textAppearanceLarge"
@@ -169,7 +169,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="fill_parent"
-                    android:id="@+id/team_amount"
+                    android:id="@+id/teamSpendLabel"
                     android:text="0,00"
                     android:layout_marginLeft="10dip"
                     android:textAppearance="?android:attr/textAppearanceLarge"

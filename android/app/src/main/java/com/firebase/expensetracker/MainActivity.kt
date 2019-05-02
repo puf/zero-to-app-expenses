@@ -51,124 +51,125 @@ class MainActivity : AppCompatActivity() {
             getImageIntent.type = "image/jpeg"
             startActivityForResult(getImageIntent, RC_PHOTO_PICKER)
         }
-
     }
 
-    private fun attachFirestoreListeners() {
-        val firestore = FirebaseFirestore.getInstance()
-        val userDocRef = firestore.collection("users").document(getUserId())
-        userDocRef.addSnapshotListener { documentSnapshot, _ ->
-            if (documentSnapshot != null && documentSnapshot.exists()) {
-                user_amount.text = formatAmount(documentSnapshot.get("user_cost"))
-                team_amount.text = formatAmount(documentSnapshot.get("team_cost"))
+
+        public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+            if (requestCode == RC_PHOTO_PICKER && resultCode == Activity.RESULT_OK) {
+                onImageSelected(data)
+            } else if (requestCode == RC_SIGN_IN) {
+                onSignInCompleted(data, resultCode)
             }
         }
-        // Listen for documents with expense data
-        userDocRef.collection("expenses")
-                .orderBy("created_at", Query.Direction.DESCENDING)
-                .limit(1)
-                .addSnapshotListener { querySnapshot, e ->
-                    if (e != null) showError("Error reading expenses", e)
 
-                    val documents = querySnapshot?.documents!!.size
-                    if (documents > 0) {
-                        val data = querySnapshot?.documents!![0].data!!
-                        amount.text = formatAmount(data["item_cost"])
-                    }
+        private fun showMessage(msg: Any?, priority: Int = Log.INFO) {
+            if (msg != null) {
+                Snackbar.make(fab, msg.toString(), Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show()
+                Log.println(priority, "TAG", msg.toString())
+            }
+        }
 
+        private fun showError(msg: Any?, tr: Throwable) {
+            if (msg != null) {
+                Snackbar.make(fab, msg.toString(), Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show()
+            }
+            Log.e("TAG", msg.toString(), tr)
+        }
+
+        private fun getUserId() = FirebaseAuth.getInstance().currentUser?.uid ?: "yes"
+        private fun formatAmount(amount: Any?): String = String.format("%10.2f", (amount as Number).toDouble())
+        private fun generateUniqueId() = System.currentTimeMillis().toString()
+
+        override fun onCreateOptionsMenu(menu: Menu): Boolean {
+            menuInflater.inflate(R.menu.menu_main, menu)
+            return super.onCreateOptionsMenu(menu)
+        }
+
+        override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+            menu!!.findItem(R.id.menu_signin).isVisible = FirebaseAuth.getInstance().currentUser == null
+            menu!!.findItem(R.id.menu_signout).isVisible = FirebaseAuth.getInstance().currentUser != null
+            return super.onPrepareOptionsMenu(menu)
+        }
+
+        override fun onOptionsItemSelected(item: MenuItem): Boolean {
+            when (item.itemId) {
+                R.id.menu_signin -> {
+                    onSignInButtonClicked()
                 }
-    }
-
-    private fun onSignInButtonClicked() {
-        startActivityForResult(
-                AuthUI.getInstance()
-                        .createSignInIntentBuilder()
-                        .setAvailableProviders(arrayListOf(
-                                AuthUI.IdpConfig.EmailBuilder().build(),
-                                AuthUI.IdpConfig.GoogleBuilder().build()))
-                        .build(),
-                RC_SIGN_IN)
-    }
-
-    private fun onSignInCompleted(data: Intent?, resultCode: Int) {
-        val response = IdpResponse.fromResultIntent(data)
-
-        if (resultCode == Activity.RESULT_OK) {
-            val user = FirebaseAuth.getInstance().currentUser!!
-            showMessage("Signed in: ${user.displayName}")
-        } else {
-            showMessage(response?.error, Log.ERROR)
-        }
-    }
-
-    private fun onImageSelected(data: Intent?) {
-        // Get a reference to the image the user selected
-        val file = data?.data!!
-
-        // Get a reference to the location where we'll store our receipts
-        val expenseId = generateUniqueId()
-        val filename = "receipts/${getUserId()}/${expenseId}"
-        val storageRef = FirebaseStorage.getInstance().getReference(filename)
-
-        // Upload file to Firebase Storage
-        showMessage("Uploading receipt")
-        storageRef.putFile(file).addOnSuccessListener {
-            showMessage("Receipt uploaded, waiting for results...")
-        }.addOnFailureListener { error ->
-            showMessage("Upload failed: ${error.message}")
-            Log.e("TAG", "Upload failed", error)
-        }
-    }
-
-    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == RC_PHOTO_PICKER && resultCode == Activity.RESULT_OK) {
-            onImageSelected(data)
-        }
-        else if (requestCode == RC_SIGN_IN) {
-            onSignInCompleted(data, resultCode)
-        }
-    }
-
-    private fun showMessage(msg: Any?, priority: Int = Log.INFO) {
-        if (msg != null) {
-            Snackbar.make(fab, msg.toString(), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
-            Log.println(priority, "TAG", msg.toString())
-        }
-    }
-    private fun showError(msg: Any?, tr: Throwable) {
-        if (msg != null) {
-            Snackbar.make(fab, msg.toString(), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
-        }
-        Log.e("TAG", msg.toString(), tr)
-    }
-
-    private fun getUserId() = FirebaseAuth.getInstance().currentUser?.uid ?: "yes"
-    private fun formatAmount(amount: Any?): String = String.format("%10.2f", (amount as Number).toDouble())
-    private fun generateUniqueId() = System.currentTimeMillis().toString()
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        menu!!.findItem(R.id.menu_signin).isVisible = FirebaseAuth.getInstance().currentUser == null
-        menu!!.findItem(R.id.menu_signout).isVisible = FirebaseAuth.getInstance().currentUser != null
-        return super.onPrepareOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.menu_signin -> {
-                onSignInButtonClicked()
+                R.id.menu_signout -> {
+                    AuthUI.getInstance().signOut(this)
+                }
             }
-            R.id.menu_signout -> {
-                AuthUI.getInstance().signOut(this)
+            return super.onOptionsItemSelected(item)
+        }
+
+        private fun onImageSelected(data: Intent?) {
+            // Get a reference to the image the user selected
+            val file = data?.data!!
+
+            // Get a reference to the location where we'll store our receipts
+            val expenseId = generateUniqueId()
+            val filename = "receipts/${getUserId()}/${expenseId}"
+            val storageRef = FirebaseStorage.getInstance().getReference(filename)
+
+            // Upload file to Firebase Storage
+            showMessage("Uploading receipt")
+            storageRef.putFile(file).addOnSuccessListener {
+                showMessage("Receipt uploaded, waiting for results...")
+            }.addOnFailureListener { error ->
+                showMessage("Upload failed: ${error.message}")
+                Log.e("TAG", "Upload failed", error)
             }
         }
-        return super.onOptionsItemSelected(item)
+
+        private fun onSignInButtonClicked() {
+            startActivityForResult(
+                    AuthUI.getInstance()
+                            .createSignInIntentBuilder()
+                            .setAvailableProviders(arrayListOf(
+                                    AuthUI.IdpConfig.EmailBuilder().build(),
+                                    AuthUI.IdpConfig.GoogleBuilder().build()))
+                            .build(),
+                    RC_SIGN_IN)
+        }
+
+        private fun onSignInCompleted(data: Intent?, resultCode: Int) {
+            val response = IdpResponse.fromResultIntent(data)
+
+            if (resultCode == Activity.RESULT_OK) {
+                val user = FirebaseAuth.getInstance().currentUser!!
+                showMessage("Signed in: ${user.displayName}")
+            } else {
+                showMessage(response?.error, Log.ERROR)
+            }
+        }
+
+        private fun attachFirestoreListeners() {
+            val firestore = FirebaseFirestore.getInstance()
+            val userDocRef = firestore.collection("users").document(getUserId())
+            userDocRef.addSnapshotListener { documentSnapshot, _ ->
+                if (documentSnapshot != null && documentSnapshot.exists()) {
+                    user_amount.text = formatAmount(documentSnapshot.get("user_cost"))
+                    team_amount.text = formatAmount(documentSnapshot.get("team_cost"))
+                }
+            }
+            // Listen for documents with expense data
+            userDocRef.collection("expenses")
+                    .orderBy("created_at", Query.Direction.DESCENDING)
+                    .limit(1)
+                    .addSnapshotListener { querySnapshot, e ->
+                        if (e != null) showError("Error reading expenses", e)
+
+                        val documents = querySnapshot?.documents!!.size
+                        if (documents > 0) {
+                            val data = querySnapshot?.documents!![0].data!!
+                            amount.text = formatAmount(data["item_cost"])
+                        }
+
+                    }
+        }
     }
 
-}
+

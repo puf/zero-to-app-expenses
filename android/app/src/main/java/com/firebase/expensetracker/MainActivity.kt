@@ -158,7 +158,7 @@ class MainActivity : AppCompatActivity() {
                     amount.text = formatAmount(data["item_cost"])
                 }
 
-        // Listen for document with user and team todal
+        // Listen for document with user and team total
         userDocRef.addSnapshotListener { documentSnapshot, _ ->
             if (documentSnapshot != null && documentSnapshot.exists()) {
                 user_amount.text = formatAmount(documentSnapshot.get("user_cost"))

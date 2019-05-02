@@ -149,12 +149,7 @@ class MainActivity : AppCompatActivity() {
         private fun attachFirestoreListeners() {
             val firestore = FirebaseFirestore.getInstance()
             val userDocRef = firestore.collection("users").document(getUserId())
-            userDocRef.addSnapshotListener { documentSnapshot, _ ->
-                if (documentSnapshot != null && documentSnapshot.exists()) {
-                    user_amount.text = formatAmount(documentSnapshot.get("user_cost"))
-                    team_amount.text = formatAmount(documentSnapshot.get("team_cost"))
-                }
-            }
+
             // Listen for documents with expense data
             userDocRef.collection("expenses")
                     .orderBy("created_at", Query.Direction.DESCENDING)
@@ -162,13 +157,21 @@ class MainActivity : AppCompatActivity() {
                     .addSnapshotListener { querySnapshot, e ->
                         if (e != null) showError("Error reading expenses", e)
 
-                        val documents = querySnapshot?.documents!!.size
-                        if (documents > 0) {
+                        if (querySnapshot?.documents?.size ?: 0 > 0) {
                             val data = querySnapshot?.documents!![0].data!!
                             amount.text = formatAmount(data["item_cost"])
                         }
 
                     }
+
+            // Listen for the user doc for aggregated totals
+            userDocRef.addSnapshotListener { documentSnapshot, _ ->
+                if (documentSnapshot != null && documentSnapshot.exists()) {
+                    user_amount.text = formatAmount(documentSnapshot.get("user_cost"))
+                    team_amount.text = formatAmount(documentSnapshot.get("team_cost"))
+                }
+            }
+
         }
     }
 

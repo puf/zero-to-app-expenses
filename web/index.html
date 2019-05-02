@@ -29,9 +29,9 @@
 <input type="file" accept="image/*" id="capture-photo" capture="camera"><br/>
 <span id="status"></span>
 <br/>
-<div><span>Receipt:</span> <span id="receipt-amount"></span></div>
-<div><span>My total:</span> <span id="user-amount"></span></div>
-<div><span>Team total:</span> <span id="team-amount"></span></div>
+<div><span>Receipt:</span> <span id="last-item"></span></div>
+<div><span>My total:</span> <span id="your-spend"></span></div>
+<div><span>Team total:</span> <span id="team-spend"></span></div>
 
 <script>
     /** Auth and upload **/
@@ -39,9 +39,9 @@
         statusOutput = document.querySelector("#status"),
         authElm = document.querySelector('#firebaseui-auth-container'),
         signoutButton = document.querySelector("#signout-button"),
-        receiptAmount = document.getElementById('receipt-amount'),
-        userAmount = document.getElementById('user-amount'),
-        teamAmount = document.getElementById('team-amount');
+        lastItem = document.getElementById('last-item'),
+        yourSpend = document.getElementById('your-spend'),
+        teamSpend = document.getElementById('team-spend');
 
     function formatAmount(amount) {
       return amount.toFixed(2);
@@ -118,7 +118,7 @@
             .orderBy('created_at', 'desc').limit(1)
             .onSnapshot((querySnapshot) => {
                 let data = querySnapshot.docs[0].data();
-                receiptAmount.textContent = formatAmount(data.item_cost);
+                lastItem.textContent = formatAmount(data.item_cost);
             });
 
         // Listen for the user doc for aggregated totals
@@ -126,8 +126,8 @@
             .onSnapshot((docSnapshot) => {
                 if (docSnapshot) {
                     var data = docSnapshot.data();
-                    userAmount.textContent = formatAmount(data.user_cost);
-                    teamAmount.textContent = formatAmount(data.team_cost);
+                    yourSpend.textContent = formatAmount(data.user_cost);
+                    teamSpend.textContent = formatAmount(data.team_cost);
                 }
             });
      };

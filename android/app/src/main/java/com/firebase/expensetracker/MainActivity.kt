@@ -159,7 +159,7 @@ class MainActivity : AppCompatActivity() {
 
                         if (querySnapshot?.documents?.size ?: 0 > 0) {
                             val data = querySnapshot?.documents!![0].data!!
-                            amount.text = formatAmount(data["item_cost"])
+                            lastItemLabel.text = formatAmount(data["item_cost"])
                         }
 
                     }
@@ -167,8 +167,8 @@ class MainActivity : AppCompatActivity() {
             // Listen for the user doc for aggregated totals
             userDocRef.addSnapshotListener { documentSnapshot, _ ->
                 if (documentSnapshot != null && documentSnapshot.exists()) {
-                    user_amount.text = formatAmount(documentSnapshot.get("user_cost"))
-                    team_amount.text = formatAmount(documentSnapshot.get("team_cost"))
+                    yourSpendLabel.text = formatAmount(documentSnapshot.get("user_cost"))
+                    teamSpendLabel.text = formatAmount(documentSnapshot.get("team_cost"))
                 }
             }
 

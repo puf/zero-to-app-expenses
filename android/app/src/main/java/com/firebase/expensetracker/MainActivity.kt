@@ -70,8 +70,12 @@ class MainActivity : AppCompatActivity() {
                 .addSnapshotListener { querySnapshot, e ->
                     if (e != null) showError("Error reading expenses", e)
 
-                    val data = querySnapshot?.documents!![0].data!!
-                    amount.text = formatAmount(data["item_cost"])
+                    val documents = querySnapshot?.documents!!.size
+                    if (documents > 0) {
+                        val data = querySnapshot?.documents!![0].data!!
+                        amount.text = formatAmount(data["item_cost"])
+                    }
+
                 }
     }
 

@@ -59,17 +59,17 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         }
         
         // Set up Firestore listeners
-        self.listenForExpenses()
+        self.attachFirestoreListeners()
     }
     
     // Upload a file
-    func uploadReceiptImage(data: Data) {
+    func onImageSelected(data: Data) {
         // TODO 1: Prepare for upload
         let storageMetadata = StorageMetadata()
         storageMetadata.contentType = "image/jpeg"
         
-        let userId = getCurrentUser()
-        let expenseId = NSUUID().uuidString
+        let userId = getUserId()
+        let expenseId = generateUniqueId()
         
         let storageRef = storage.reference().child("receipts/\(userId)/\(expenseId)")
         
@@ -88,7 +88,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         }
     }
     
-    func presentAuthViewController() {
+    func onSignInCompleted() {
         // TODO 5: Configure FirebaseUI
         self.authUI = FUIAuth.defaultAuthUI()!
         self.authUI.providers = [
@@ -109,8 +109,8 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     }
     
     // Listen for expenses in Firestore
-    func listenForExpenses() {
-        let userId = getCurrentUser()
+    func attachFirestoreListeners() {
+        let userId = getUserId()
         
         // TODO 7: Get the last item uploaded
         self.firestore.collection("users").document(userId).collection("expenses")
@@ -124,7 +124,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
                 }
 
                 let itemCost = documents.first?["item_cost"] as? Double ?? 0.00
-                self.lastItemLabel?.text = String(itemCost)
+                self.lastItemLabel?.text = self.formatAmount(amount: itemCost)
         }
         
         // TODO 9: Get all user info
@@ -137,10 +137,10 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
                 }
 
                 let yourSpend = documentSnapshot?.get("user_cost") as? Double ?? 0.00
-                self.yourSpendLabel?.text = String(yourSpend)
+                self.yourSpendLabel?.text = self.formatAmount(amount: yourSpend)
                 
                 let teamSpend = documentSnapshot?.get("team_cost") as? Double ?? 0.00
-                self.teamSpendLabel?.text = String(teamSpend)
+                self.teamSpendLabel?.text = self.formatAmount(amount: teamSpend)
         }
     }
     
@@ -152,7 +152,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
                 self.showMessage(message: "Failed to sign user out!")
             }
         } else {
-            self.presentAuthViewController()
+            self.onSignInCompleted()
         }
     }
     
@@ -162,11 +162,15 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         }
     }
     
+    func formatAmount(amount: Double) -> String {
+        return String(format: "%.2f", amount)
+    }
+    
     // UIImagePickerControllerDelegate methods
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         guard let image = info[.originalImage] as? UIImage else { return }
         let imageData = image.jpegData(compressionQuality: 1.0)
-        self.uploadReceiptImage(data: imageData!)
+        self.onImageSelected(data: imageData!)
         self.dismiss(animated: true, completion: nil)
     }
     
@@ -184,8 +188,12 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         self.present(alertViewController, animated: true, completion: nil)
     }
     
-    func getCurrentUser() -> String {
+    func getUserId() -> String {
         return self.auth.currentUser?.uid ?? "12345"
+    }
+    
+    func generateUniqueId() -> String {
+        return NSUUID().uuidString
     }
 
 }

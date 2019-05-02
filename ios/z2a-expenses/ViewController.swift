@@ -53,25 +53,24 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         self.auth.addStateDidChangeListener { (auth, user) in
             if (user != nil) {
                 self.navigationItem.leftBarButtonItem?.title = "Log out"
+                self.attachFirestoreListeners()
             } else {
                 self.navigationItem.leftBarButtonItem?.title = "Log in"
             }
         }
-        
-        // Set up Firestore listeners
-        self.listenForExpenses()
     }
     
     // Upload a file
-    func uploadReceiptImage(data: Data) {
+    func onImageSelected(data: Data) {
         // TODO 1: Prepare for upload
         let storageMetadata = StorageMetadata()
         storageMetadata.contentType = "image/jpeg"
         
-        let userId = getCurrentUser()
-        let expenseId = NSUUID().uuidString
-        
-        let storageRef = storage.reference().child("receipts/\(userId)/\(expenseId)")
+        // Get a reference to the location where we'll store our receipts
+        let userId = getUserId()
+        let expenseId = generateUniqueId()
+        let filename = "receipts/\(userId)/\(expenseId)"
+        let storageRef = storage.reference().child(filename)
         
         // TODO 2: Upload file
         self.showMessage(message: "Uploading receipt")
@@ -101,19 +100,20 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     
     // TODO 6: Login delegate methods
     func authUI(_ authUI: FUIAuth, didSignInWith authDataResult: AuthDataResult?, error: Error?) {
-        if (error != nil) {
-            self.showMessage(message: "Login failed!")
-        } else {
+        if (error == nil) {
             self.showMessage(message: "Login succeeded!")
+        } else {
+            self.showMessage(message: "Login failed!")
         }
     }
     
     // Listen for expenses in Firestore
-    func listenForExpenses() {
-        let userId = getCurrentUser()
+    func attachFirestoreListeners() {
+        let firestore = Firestore.firestore()
+        let userId = getUserId()
         
         // TODO 7: Get the last item uploaded
-        self.firestore.collection("users").document(userId).collection("expenses")
+        firestore.collection("users").document(userId).collection("expenses")
             .order(by: "created_at", descending: true)
             .limit(to: 1)
             .addSnapshotListener { (querySnapshot, error) in
@@ -123,8 +123,8 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
                     return
                 }
 
-                let itemCost = documents.first?["item_cost"] as? Double ?? 0.00
-                self.lastItemLabel?.text = String(itemCost)
+                let data = querySnapshot?.documents?.first
+                self.lastItemLabel?.text = formatAmount(data?["item_cost"])
         }
         
         // TODO 9: Get all user info
@@ -136,11 +136,8 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
                     return
                 }
 
-                let yourSpend = documentSnapshot?.get("user_cost") as? Double ?? 0.00
-                self.yourSpendLabel?.text = String(yourSpend)
-                
-                let teamSpend = documentSnapshot?.get("team_cost") as? Double ?? 0.00
-                self.teamSpendLabel?.text = String(teamSpend)
+                self.yourSpendLabel?.text = formatAmount(documentSnapshot?.get("user_cost"))
+                self.teamSpendLabel?.text = formatAmount(documentSnapshot?.get("team_cost"))
         }
     }
     
@@ -166,7 +163,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         guard let image = info[.originalImage] as? UIImage else { return }
         let imageData = image.jpegData(compressionQuality: 1.0)
-        self.uploadReceiptImage(data: imageData!)
+        self.onImageSelected(data: imageData!)
         self.dismiss(animated: true, completion: nil)
     }
     
@@ -183,10 +180,17 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         alertViewController.addAction(dismissAction)
         self.present(alertViewController, animated: true, completion: nil)
     }
-    
-    func getCurrentUser() -> String {
+
+    func getUserId() -> String {
         return self.auth.currentUser?.uid ?? "12345"
     }
 
+    func generateUniqueId() -> String {
+        return NSUUID().uuidString
+    }
+
+    func formatAmount(amount: Any) -> String {
+        return String(amount as? Double ?? 0.00)
+    }
 }
 

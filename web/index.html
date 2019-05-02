@@ -35,76 +35,100 @@
 
 <script>
     /** Auth and upload **/
-    var imageInput = document.querySelector("#capture-photo"),
-        statusOutput = document.querySelector("#status")
-    authElm = document.querySelector('#firebaseui-auth-container'),
-        signoutButton = document.querySelector("#signout-button");
-    var auth = firebase.auth(),
-        firebaseui = new firebaseui.auth.AuthUI(auth);
-        storage = firebase.storage(),
-        firestore = firebase.firestore();
-    /**
-     * Step AUTH 1: Use FirebaseUI to set it up easily.
-     */
-    firebaseui.start('#firebaseui-auth-container', {
-        signInSuccessUrl: '/index.html',
-        signInOptions: [
-            firebase.auth.GoogleAuthProvider.PROVIDER_ID
-        ],
-    });
-    /**
-     * Step AUTH 2: Listening to state change to show appropriate UI.
-     */
-    auth.onAuthStateChanged((user) => {
+    let imageInput = document.querySelector("#capture-photo"),
+        statusOutput = document.querySelector("#status"),
+        authElm = document.querySelector('#firebaseui-auth-container'),
+        signoutButton = document.querySelector("#signout-button"),
+        receiptAmount = document.getElementById('receipt-amount'),
+        userAmount = document.getElementById('user-amount'),
+        teamAmount = document.getElementById('team-amount');
+
+    function formatAmount(amount) {
+      return amount.toFixed(2);
+    }
+
+    function getUserId() {
+       return firebase.auth().currentUser ? firebase.auth().currentUser.uid : "owo";
+    }
+
+    function generateUniqueId() {
+      return (new Date()).getTime();
+    }
+
+    imageInput.addEventListener('change', onImageSelected, false);
+    signoutButton.addEventListener('click', e => firebase.auth().signOut());
+    firebase.auth().onAuthStateChanged((user) => {
         authElm.style.display = (user) ? 'none' : '';
         signoutButton.style.display = (user) ? '' : 'none';
-        setupFirestore();
+        if (user) {
+          attachFirestoreListeners();
+        }
     });
+
+
     /**
-     * Step AUTH 3: Sign out because ... signing out is important.
+     * STORAGE: Handle image upload.
      */
-    signoutButton.addEventListener('click', function (e) {
-        auth.signOut();
-    });
-    async function handleFileSelect(e) {
+    async function onImageSelected(e) {
         const file = e.target.files[0];
         statusOutput.innerText = 'Uploading receipt';
-        // Generate a random name for the image.
-        const expenseId = (new Date()).getTime();
-        const filename = `receipts/${auth.currentUser.uid}/${expenseId}`;
+
+        // Get a reference to the location where we'll store our receipts
+        const expenseId = generateUniqueId();
+        const filename = `receipts/${getUserId()}/${expenseId}`;
+        const storageRef = firebase.storage().ref().child(filename);
+
+        // Upload the file to Firebase Storage
         try {
-            let snapshot = await storage.ref().child(filename).put(file);
+            let snapshot = await storageRef.put(file);
             statusOutput.innerText = 'Receipt uploaded, waiting for results...';
         } catch(error) {
             console.error(error);
         }
-
     };
 
-    // When we upload an image, handle it!
-    imageInput.addEventListener('change', handleFileSelect, false);
+    /**
+     * AUTH: Use FirebaseUI to set it up easily.
+     */
+    var firebaseui = new firebaseui.auth.AuthUI(firebase.auth());
+    firebaseui.start('#firebaseui-auth-container', {
+        signInSuccessUrl: '/index.html',
+        signInOptions: [
+            firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+            firebase.auth.EmailAuthProvider.PROVIDER_ID
+        ],
+        callbacks: {
+            signInSuccessWithAuthResult: (authResult, redirectUrl) => {
+                statusOutput.innerText = `Signed in: ${authResult.user.displayName}`;
+            },
+            signInFailure: (error) => {
+                console.log("Auth error", error);
+            }
+        }
+    });
 
     /**
-     * Read from Firestore
+     * FIRESTORE: Listen for documents.
      */
-     function setupFirestore() {
-         firestore.collection('users').doc(auth.currentUser.uid)
-            .onSnapshot((docSnapshot) => {
-                if (docSnapshot) {
-                  var data = docSnapshot.data();
-                  console.log('user document', data);
-                  document.getElementById('user-amount').innerHTML = data.user_cost;
-                  document.getElementById('team-amount').innerHTML = data.team_cost;
-                }
-            });
-         firestore.collection('users/' + auth.currentUser.uid + '/expenses')
+    function attachFirestoreListeners() {
+        let firestore = firebase.firestore();
+
+        // Listen for the latest expense report we uploaded
+        firestore.collection(`users/${getUserId()}/expenses`)
             .orderBy('created_at', 'desc').limit(1)
             .onSnapshot((querySnapshot) => {
-                querySnapshot.forEach(doc => {
-                  var data = doc.data();
-                  console.log('expense document', data);
-                  document.getElementById('receipt-amount').innerHTML = data.item_cost;
-                });
+                let data = querySnapshot.docs[0].data();
+                receiptAmount.textContent = formatAmount(data.item_cost);
+            });
+
+        // Listen for the user doc for aggregated totals
+        firestore.collection('users').doc(getUserId())
+            .onSnapshot((docSnapshot) => {
+                if (docSnapshot) {
+                    var data = docSnapshot.data();
+                    userAmount.textContent = formatAmount(data.user_cost);
+                    teamAmount.textContent = formatAmount(data.team_cost);
+                }
             });
      };
 </script>

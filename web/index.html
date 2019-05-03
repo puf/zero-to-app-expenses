@@ -35,10 +35,10 @@
 
 <script>
     /** Auth and upload **/
-    let imageInput = document.querySelector("#capture-photo"),
-        statusOutput = document.querySelector("#status"),
+    let imageInput = document.querySelector('#capture-photo'),
+        statusOutput = document.querySelector('#status'),
         authElm = document.querySelector('#firebaseui-auth-container'),
-        signoutButton = document.querySelector("#signout-button"),
+        signoutButton = document.querySelector('#signout-button'),
         lastItem = document.getElementById('last-item'),
         yourSpend = document.getElementById('your-spend'),
         teamSpend = document.getElementById('team-spend');
@@ -81,8 +81,9 @@
         // Upload the file to Firebase Storage
         try {
             let snapshot = await storageRef.put(file);
-            statusOutput.innerText = 'Receipt uploaded, waiting for results...';
+            statusOutput.innerText = 'Receipt uploaded.';
         } catch(error) {
+            statusOutput.innerText = `Failed to upload. ${error.message}`;
             console.error(error);
         }
     };
@@ -102,7 +103,8 @@
                 statusOutput.innerText = `Signed in: ${authResult.user.displayName}`;
             },
             signInFailure: (error) => {
-                console.log("Auth error", error);
+                statusOutput.innerText = `Error signing in. ${error.message}`;
+                console.log('Auth error', error);
             }
         }
     });

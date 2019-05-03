@@ -79,6 +79,6 @@ exports.findTotal = function findTotal(detections) {
     .map(text => text.replace(',', '.'))
     .map(text => Number(text))
     .concat([0.0]);
-  console.log(amounts);
+  //console.log(amounts);
   return Math.max.apply(null, amounts);
 }

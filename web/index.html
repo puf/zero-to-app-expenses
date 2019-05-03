@@ -68,19 +68,21 @@
 
     /**
      * STORAGE: Handle image upload.
-     */
+    **/
     async function onImageSelected(e) {
+        // Get a reference to the image the user selected
         const file = e.target.files[0];
-        statusOutput.innerText = 'Uploading receipt';
 
         // Get a reference to the location where we'll store our receipts
+        const userId = getUserId();
         const expenseId = generateUniqueId();
-        const filename = `receipts/${getUserId()}/${expenseId}`;
+        const filename = `receipts/${userId}/${expenseId}`;
         const storageRef = firebase.storage().ref().child(filename);
 
         // Upload the file to Firebase Storage
+        statusOutput.innerText = 'Uploading receipt';
         try {
-            let snapshot = await storageRef.put(file);
+            await storageRef.put(file);
             statusOutput.innerText = 'Receipt uploaded.';
         } catch(error) {
             statusOutput.innerText = `Failed to upload. ${error.message}`;
@@ -90,7 +92,7 @@
 
     /**
      * AUTH: Use FirebaseUI to set it up easily.
-     */
+    **/
     var firebaseui = new firebaseui.auth.AuthUI(firebase.auth());
     firebaseui.start('#firebaseui-auth-container', {
         signInSuccessUrl: '/index.html',
@@ -109,9 +111,10 @@
         }
     });
 
+
     /**
      * FIRESTORE: Listen for documents.
-     */
+    **/
     function attachFirestoreListeners() {
         let firestore = firebase.firestore();
 
@@ -132,7 +135,7 @@
                     teamSpend.textContent = formatAmount(data.team_cost);
                 }
             });
-     };
+    };
 </script>
 </body>
 </html>

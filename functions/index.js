@@ -25,7 +25,6 @@ exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
       let expenseDoc = admin.firestore().doc(`users/${uid}/expenses/${fileName}`);
 
       return expenseDoc.set({
-        uid: uid,
         created_at: admin.firestore.FieldValue.serverTimestamp(),
         item_cost: amount
       });

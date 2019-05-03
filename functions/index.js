@@ -8,7 +8,7 @@ const utils = require('./utils');
 admin.initializeApp();
 
 exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
-  return utils.ifEnabled(admin, 'scanReceipt').then(function() {
+  return utils.ifEnabled(admin, '1_scanReceipt').then(function() {
     const fileBucket = object.bucket; // The Storage bucket that contains the file.
     const filePath = object.name; // File path in the bucket.
 
@@ -36,7 +36,7 @@ exports.scanReceipt = functions.storage.object().onFinalize(function(object) {
 exports.calculateUserCost = functions.firestore
 .document('users/{uid}/expenses/{expenseId}')
 .onCreate((snap, context) => {
-  return utils.ifEnabled(admin, 'calculateUserCost').then(function() {
+  return utils.ifEnabled(admin, '2_calculateUserCost').then(function() {
     const amount = snap.data().item_cost;
     const uid = context.params.uid;
 
@@ -49,7 +49,7 @@ exports.calculateUserCost = functions.firestore
 
   exports.calculateTeamCost = functions.firestore
   .document('users/{uid}').onWrite((change, context) => {
-    return utils.ifEnabled(admin, 'calculateTeamCost').then(function() {
+    return utils.ifEnabled(admin, '3_calculateTeamCost').then(function() {
       let old_total = change.before && change.before.data() && change.before.data().user_cost ? change.before.data().user_cost : 0;
       let new_total = change.after.data().user_cost;
       if (old_total === new_total) return true;

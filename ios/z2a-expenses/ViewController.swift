@@ -40,7 +40,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         super.viewDidLoad()
         
         // Initialize UINavigationController
-        self.title = "My I/O Expenses"
+        self.title = "Zero to Expenses"
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .camera, target: self, action: #selector(selectPhoto))
         self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "", style: .plain, target: self, action: #selector(toggleLogin))
         
@@ -53,38 +53,34 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         self.auth.addStateDidChangeListener { (auth, user) in
             if (user != nil) {
                 self.navigationItem.leftBarButtonItem?.title = "Log out"
+                self.attachFirestoreListeners()
             } else {
                 self.navigationItem.leftBarButtonItem?.title = "Log in"
             }
         }
-        
-        // Set up Firestore listeners
-        self.attachFirestoreListeners()
     }
     
     // Upload a file
     func onImageSelected(data: Data) {
         // TODO 1: Prepare for upload
-        let storageMetadata = StorageMetadata()
-        storageMetadata.contentType = "image/jpeg"
-        
         let userId = getUserId()
         let expenseId = generateUniqueId()
+        let filename = "receipts/\(userId)/\(expenseId)"
         
-        let storageRef = storage.reference().child("receipts/\(userId)/\(expenseId)")
-        
+        let storageRef = storage.reference().child(filename)
+
         // TODO 2: Upload file
         self.showMessage(message: "Uploading receipt")
         let uploadTask = storageRef.putData(data)
-        
-        // TODO 3: handle success
+
+        // TODO 3: Handle success
         uploadTask.observe(.success) { (snapshot) in
             self.showMessage(message: "Uploaded succeeded!")
         }
-        
-        // TODO 4: handle failure
+
+        // TODO 4: Handle failure
         uploadTask.observe(.failure) { (snapshot) in
-            self.showMessage(message: "Uploaded failed!")
+            self.showMessage(message: "Uploaded failed due to \(snapshot.error.debugDescription)!")
         }
     }
     
@@ -92,6 +88,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         // TODO 5: Configure FirebaseUI
         self.authUI = FUIAuth.defaultAuthUI()!
         self.authUI.providers = [
+            FUIEmailAuth(),
             FUIGoogleAuth()
         ]
         self.authUI.delegate = self
@@ -102,33 +99,28 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     // TODO 6: Login delegate methods
     func authUI(_ authUI: FUIAuth, didSignInWith authDataResult: AuthDataResult?, error: Error?) {
         if (error != nil) {
-            self.showMessage(message: "Login failed!")
+            self.showMessage(message: "Login failed due to \(error.debugDescription)!")
         } else {
-            self.showMessage(message: "Login succeeded!")
+            self.showMessage(message: "Logged in \(authDataResult?.user.displayName! ?? "")!")
         }
     }
-    
+
     // Listen for expenses in Firestore
     func attachFirestoreListeners() {
-        let userId = getUserId()
-        
-        // TODO 7: Get the last item uploaded
-        self.firestore.collection("users").document(userId).collection("expenses")
+        self.firestore.collection("users").document(getUserId()).collection("expenses")
             .order(by: "created_at", descending: true)
             .limit(to: 1)
             .addSnapshotListener { (querySnapshot, error) in
                 // TODO 8: Update the UI
-                guard let documents = querySnapshot?.documents else {
+                guard let _ = querySnapshot?.documents else {
                     print("Error fetching documents: \(error!)")
                     return
                 }
 
-                let itemCost = documents.first?["item_cost"] as? Double ?? 0.00
-                self.lastItemLabel?.text = self.formatAmount(amount: itemCost)
+                self.lastItemLabel?.text = self.formatAmount(amount: querySnapshot?.documents.first?["item_cost"])
         }
-        
-        // TODO 9: Get all user info
-        self.firestore.collection("users").document(userId)
+
+        self.firestore.collection("users").document(getUserId())
             .addSnapshotListener { (documentSnapshot, error) in
                 // TODO 10: Update the UI
                 guard let _ = documentSnapshot else {
@@ -136,11 +128,8 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
                     return
                 }
 
-                let yourSpend = documentSnapshot?.get("user_cost") as? Double ?? 0.00
-                self.yourSpendLabel?.text = self.formatAmount(amount: yourSpend)
-                
-                let teamSpend = documentSnapshot?.get("team_cost") as? Double ?? 0.00
-                self.teamSpendLabel?.text = self.formatAmount(amount: teamSpend)
+                self.yourSpendLabel?.text = self.formatAmount(amount: documentSnapshot?.get("user_cost"))
+                self.teamSpendLabel?.text = self.formatAmount(amount: documentSnapshot?.get("team_cost"))
         }
     }
     
@@ -157,13 +146,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     }
     
     @objc func selectPhoto() {
-        if (self.auth.currentUser != nil) {
-            self.present(self.imagePickerController, animated: true, completion: nil)
-        }
-    }
-    
-    func formatAmount(amount: Double) -> String {
-        return String(format: "%.2f", amount)
+        self.present(self.imagePickerController, animated: true, completion: nil)
     }
     
     // UIImagePickerControllerDelegate methods
@@ -189,12 +172,15 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     }
     
     func getUserId() -> String {
-        return self.auth.currentUser?.uid ?? "12345"
+        return self.auth.currentUser?.uid ?? "definitelyNotAnActualUser"
     }
     
     func generateUniqueId() -> String {
         return NSUUID().uuidString
     }
-
+    
+    func formatAmount(amount: Any?) -> String {
+        return String(format: "%.2f", amount as? Double ?? 0.00)
+    }
 }
 

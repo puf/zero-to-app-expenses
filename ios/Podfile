@@ -11,4 +11,5 @@ target 'z2a-expenses' do
   pod 'Firebase/Firestore'
   pod 'FirebaseUI/Auth'
   pod 'FirebaseUI/Google'
+  pod 'FirebaseUI/Email'
 end

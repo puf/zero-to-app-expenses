@@ -12,6 +12,7 @@
     limitations under the License.
 -->
 <html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <head>
     <script src="/__/firebase/5.9.3/firebase-app.js"></script>
     <script src="/__/firebase/5.9.3/firebase-auth.js"></script>
@@ -20,25 +21,35 @@
     <script src="/__/firebase/init.js"></script>
     <script src="https://cdn.firebase.com/libs/firebaseui/3.5.2/firebaseui.js"></script>
     <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/3.5.2/firebaseui.css" />
-    <link type="text/css" rel="stylesheet" href="style.css"/>
+    <link type="text/css" rel="stylesheet" href="z2a.css"/>
 </head>
 <body>
-<button id="signout-button">Sign Out</button>
-<h1>Zero to Expenses</h1>
-<div id="firebaseui-auth-container"></div>
-<input type="file" accept="image/*" id="capture-photo" capture="camera"><br/>
-<span id="status"></span>
-<br/>
-<div><span>Receipt:</span> <span id="last-item"></span></div>
-<div><span>My total:</span> <span id="your-spend"></span></div>
-<div><span>Team total:</span> <span id="team-spend"></span></div>
+
+<div class="flex bg-blue p-4 justify-between text-white">
+    <div><h1>Zero to Expenses</h1></div>
+    <div><button class="hidden" id="signout-button">Sign Out</button></div>
+</div>
+<div id="status"></div>
+<div class="flex justify-center">
+    <div class="flex flex-col">
+        <div id="firebaseui-auth-container"></div>
+        <div class="p-2">
+            <input type="file" accept="image/*" id="capture-photo" capture="camera">
+        </div>
+        <div class="p-2">
+            <div><span>Last receipt:</span> <span id="last-item"></span></div>
+            <div><span>My total:</span> <span id="your-spend"></span></div>
+            <div><span>Team total:</span> <span id="team-spend"></span></div>
+        </div>
+    </div>
+</div>
 
 <script>
     /** Auth and upload **/
-    let imageInput = document.querySelector("#capture-photo"),
-        statusOutput = document.querySelector("#status"),
+    let imageInput = document.querySelector('#capture-photo'),
+        statusOutput = document.querySelector('#status'),
         authElm = document.querySelector('#firebaseui-auth-container'),
-        signoutButton = document.querySelector("#signout-button"),
+        signoutButton = document.querySelector('#signout-button'),
         lastItem = document.getElementById('last-item'),
         yourSpend = document.getElementById('your-spend'),
         teamSpend = document.getElementById('team-spend');
@@ -48,18 +59,25 @@
     }
 
     function getUserId() {
-       return firebase.auth().currentUser ? firebase.auth().currentUser.uid : "owo";
+       return firebase.auth().currentUser ? firebase.auth().currentUser.uid : "notauser";
     }
 
     function generateUniqueId() {
       return (new Date()).getTime();
     }
 
+    function showStatus(text) {
+        statusOutput.innerText = text;
+        statusOutput.className = "text-center bg-blue-dark p-2 text-white";
+    }
+
+
     imageInput.addEventListener('change', onImageSelected, false);
     signoutButton.addEventListener('click', e => firebase.auth().signOut());
     firebase.auth().onAuthStateChanged((user) => {
-        authElm.style.display = (user) ? 'none' : '';
-        signoutButton.style.display = (user) ? '' : 'none';
+        let authButtonClass = 'inline text-white bg-blue-dark p-2 rounded';
+        authElm.className = (user) ? 'hidden' : 'inline';
+        signoutButton.className = (user) ? authButtonClass : 'hidden';
         if (user) {
           attachFirestoreListeners();
         }
@@ -68,30 +86,33 @@
 
     /**
      * STORAGE: Handle image upload.
-     */
+    **/
     async function onImageSelected(e) {
+        // Get a reference to the image the user selected
         const file = e.target.files[0];
-        statusOutput.innerText = 'Uploading receipt';
 
         // Get a reference to the location where we'll store our receipts
+        const userId = getUserId();
         const expenseId = generateUniqueId();
-        const filename = `receipts/${getUserId()}/${expenseId}`;
+        const filename = `receipts/${userId}/${expenseId}`;
         const storageRef = firebase.storage().ref().child(filename);
 
         // Upload the file to Firebase Storage
+        showStatus('Uploading receipt');
         try {
-            let snapshot = await storageRef.put(file);
-            statusOutput.innerText = 'Receipt uploaded, waiting for results...';
+            await storageRef.put(file);
+            showStatus('Receipt uploaded.');
         } catch(error) {
+            showStatus(`Failed to upload. ${error.message}`);
             console.error(error);
         }
     };
 
     /**
      * AUTH: Use FirebaseUI to set it up easily.
-     */
-    var firebaseui = new firebaseui.auth.AuthUI(firebase.auth());
-    firebaseui.start('#firebaseui-auth-container', {
+    **/
+    const authui = new firebaseui.auth.AuthUI(firebase.auth());
+    authui.start('#firebaseui-auth-container', {
         signInSuccessUrl: '/index.html',
         signInOptions: [
             firebase.auth.GoogleAuthProvider.PROVIDER_ID,
@@ -99,17 +120,19 @@
         ],
         callbacks: {
             signInSuccessWithAuthResult: (authResult, redirectUrl) => {
-                statusOutput.innerText = `Signed in: ${authResult.user.displayName}`;
+                showStatus(`Signed in: ${authResult.user.displayName}`);
             },
             signInFailure: (error) => {
-                console.log("Auth error", error);
+                showStatus(`Error signing in. ${error.message}`);
+                console.log('Auth error', error);
             }
         }
     });
 
+
     /**
      * FIRESTORE: Listen for documents.
-     */
+    **/
     function attachFirestoreListeners() {
         let firestore = firebase.firestore();
 
@@ -130,7 +153,7 @@
                     teamSpend.textContent = formatAmount(data.team_cost);
                 }
             });
-     };
+    };
 </script>
 </body>
 </html>

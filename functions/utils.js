@@ -1,5 +1,5 @@
 exports.ifEnabled = function ifEnabled(admin, feature) {
-  console.log("Checking if feature '"+feature+"' is enabled");
+  //console.log("Checking if feature '"+feature+"' is enabled");
   return new Promise((resolve, reject) => {
     admin.database().ref("/config/features")
       .child(feature)
